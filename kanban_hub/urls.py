@@ -20,5 +20,5 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('auth_app.api.urls')),
-    # ...weitere App-APIs folgen
+    path('api/kanban/', include('kanban_app.api.urls')),
 ]
