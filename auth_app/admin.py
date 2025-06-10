@@ -7,7 +7,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         (None, {'fields': ('email', 'password', 'full_name')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Dates', {'fields': ('last_login', 'date_joined')}),
+        ('Dates', {'fields': ('last_login',)}),  # ACHTUNG: Das Komma macht daraus ein Tuple!
     )
     add_fieldsets = (
         (None, {
