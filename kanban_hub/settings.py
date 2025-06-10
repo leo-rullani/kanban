@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken', 
     'auth_app',
     'kanban_app',
+    'corsheaders',
 ]
 
 AUTH_USER_MODEL = 'auth_app.User'
@@ -48,12 +49,17 @@ AUTH_USER_MODEL = 'auth_app.User'
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+     
 ]
+
+# Erlaube alle lokalen Origins zum Testen:
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'kanban_hub.urls'
 

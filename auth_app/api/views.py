@@ -2,11 +2,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from rest_framework.permissions import AllowAny
 from auth_app.models import User
 from .serializers import UserSerializer
 from django.contrib.auth import authenticate
 
 class RegistrationView(APIView):
+    permission_classes = [AllowAny] 
+    
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -16,6 +19,7 @@ class RegistrationView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
+    permission_classes = [AllowAny] 
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
