@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     BoardListCreateView, BoardDetailView,
-    TaskListCreateView, TaskDetailView
+    TaskListCreateView, TaskDetailView,
+    CommentListCreateView, CommentDeleteView   # <--- HINZUGEFÜGT!
 )
 
 urlpatterns = [
@@ -12,4 +13,10 @@ urlpatterns = [
     # Tasks
     path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
     path('tasks/<int:pk>/', TaskDetailView.as_view(), name='task-detail'),
+
+    # Kommentare
+    # Alle Kommentare zu einem Task auflisten & neuen Kommentar anlegen
+    path('tasks/<int:task_id>/comments/', CommentListCreateView.as_view(), name='comment-list-create'),
+    # Einzelnen Kommentar löschen
+    path('comments/<int:pk>/', CommentDeleteView.as_view(), name='comment-delete'),
 ]

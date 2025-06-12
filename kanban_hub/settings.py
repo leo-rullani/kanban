@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'auth_app',
     'kanban_app',
     'corsheaders',
+    'django_extensions',
 ]
 
 AUTH_USER_MODEL = 'auth_app.User'

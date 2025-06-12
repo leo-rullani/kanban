@@ -4,6 +4,8 @@ from .serializers import BoardSerializer, TaskSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from kanban_app.models import Board, Task, Comment  # Comment ergänzen!
+from .serializers import BoardSerializer, TaskSerializer, CommentSerializer  # CommentSerializer ergänzen!
 
 # Whitelist für BBM interne E-Mail-Adressen (alle lower-case!)
 BBM_EMAILS = [
@@ -142,4 +144,52 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
             user.email.lower() in BBM_EMAILS
         ):
             return Response({'detail': 'Keine Berechtigung, diesen Task zu löschen.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
+class CommentListCreateView(generics.ListCreateAPIView):
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Gibt alle Kommentare zu einem bestimmten Task (über die URL) zurück.
+        """
+        task_id = self.kwargs.get('task_id')
+        return Comment.objects.filter(task__id=task_id)
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        task_id = self.kwargs.get('task_id')
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            raise serializers.ValidationError("Task not found.")
+
+        # Nur Owner, Member, BBM, Superuser dürfen kommentieren
+        if (
+            user == task.board.owner or
+            user in task.board.members.all() or
+            user.is_superuser or
+            user.email.lower() in BBM_EMAILS
+        ):
+            serializer.save(author=user, task=task)
+        else:
+            raise serializers.ValidationError("Keine Berechtigung, diesen Task zu kommentieren.")
+
+# Kommentar löschen
+class CommentDeleteView(generics.DestroyAPIView):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [IsAuthenticated]
+
+    def destroy(self, request, *args, **kwargs):
+        comment = self.get_object()
+        user = request.user
+        # Nur Author, Superuser, BBM dürfen Kommentar löschen
+        if not (
+            user == comment.author or
+            user.is_superuser or
+            user.email.lower() in BBM_EMAILS
+        ):
+            return Response({'detail': 'Keine Berechtigung, diesen Kommentar zu löschen.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
