@@ -35,7 +35,6 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         user = self.request.user
-        # Nur BBM/Superuser dürfen Boards anlegen!
         if user.is_superuser or user.email.lower() in BBM_EMAILS:
             serializer.save(owner=user)
         else:
@@ -56,7 +55,6 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         board = self.get_object()
         user = request.user
-        # Nur Owner/Superuser/BBM dürfen löschen
         if not (
             user == board.owner or
             user.is_superuser or
@@ -65,16 +63,41 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Response({'detail': 'Keine Berechtigung, dieses Board zu löschen.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
-# Task-List/Create (alle Tasks, neue Task)
+# Task-List/Create (alle Tasks, neue Task) MIT FILTER!
 class TaskListCreateView(generics.ListCreateAPIView):
-    queryset = Task.objects.all()
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Task.objects.all()
+
+        # Rechte-Logik: Nur zugelassene Tasks sehen!
+        if not (user.is_superuser or user.email.lower() in BBM_EMAILS):
+            queryset = queryset.filter(
+                board__members=user
+            )
+
+        # Filter nach Query-Parametern (optional und kombinierbar)
+        status_param = self.request.query_params.get('status')
+        board_param = self.request.query_params.get('board')
+        assignee_param = self.request.query_params.get('assignee')
+        due_date_param = self.request.query_params.get('due_date')
+
+        if status_param:
+            queryset = queryset.filter(status=status_param)
+        if board_param:
+            queryset = queryset.filter(board=board_param)
+        if assignee_param:
+            queryset = queryset.filter(assignee=assignee_param)
+        if due_date_param:
+            queryset = queryset.filter(due_date=due_date_param)
+
+        return queryset
 
     def perform_create(self, serializer):
         user = self.request.user
         board = serializer.validated_data['board']
-        # Nur Owner/Member/Superuser/BBM dürfen Tasks erstellen
         if (
             user == board.owner or
             user in board.members.all() or
@@ -112,7 +135,6 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     def destroy(self, request, *args, **kwargs):
         task = self.get_object()
         user = request.user
-        # Nur Owner/Member/Superuser/BBM dürfen Task löschen
         if not (
             user == task.board.owner or
             user in task.board.members.all() or
