@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import send_mail  # <--- Neu
+from rest_framework import serializers
+from auth_app.models import User
 
 # Whitelist für BBM interne E-Mail-Adressen (alle lower-case!)
 BBM_EMAILS = [
@@ -82,6 +84,62 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated]
+
+    def update(self, request, *args, **kwargs):
+        board = self.get_object()
+        user = request.user
+
+        # Berechtigung prüfen
+        if not (
+            user == board.owner or
+            user in board.members.all() or
+            user.is_superuser or
+            user.email.lower() in BBM_EMAILS
+        ):
+            return Response({'detail': 'Keine Berechtigung, dieses Board zu ändern.'}, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data
+
+        # Titel aktualisieren, falls vorhanden
+        if 'title' in data:
+            board.title = data['title']
+
+        # Mitglieder aktualisieren, falls vorhanden
+        if 'members' in data:
+            member_ids = data['members']
+            # Prüfe, ob alle IDs existieren
+            valid_members = User.objects.filter(id__in=member_ids)
+            if valid_members.count() != len(member_ids):
+                return Response({'detail': 'Ungültige Mitglieder-IDs.'}, status=status.HTTP_400_BAD_REQUEST)
+            # Mitglieder setzen (ersetzen alle bisherigen Mitglieder)
+            board.members.set(valid_members)
+
+        board.save()
+
+        # Spezifisches Response-Format mit owner_data und members_data
+        owner = board.owner
+        owner_data = {
+            "id": owner.id,
+            "email": owner.email,
+            "fullname": owner.full_name if hasattr(owner, 'full_name') else str(owner)
+        }
+
+        members_data = []
+        for m in board.members.all():
+            members_data.append({
+                "id": m.id,
+                "email": m.email,
+                "fullname": m.full_name if hasattr(m, 'full_name') else str(m)
+            })
+
+        response_data = {
+            "id": board.id,
+            "title": board.title,
+            "owner_data": owner_data,
+            "members_data": members_data
+        }
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def destroy(self, request, *args, **kwargs):
         board = self.get_object()
