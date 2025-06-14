@@ -15,16 +15,29 @@ class RegistrationView(APIView):
         if serializer.is_valid():
             user = serializer.save()
             token, _ = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key, 'user': UserSerializer(user).data}, status=status.HTTP_201_CREATED)
+            # Rückgabe wie in der Beispiel-API
+            return Response({
+                "token": token.key,
+                "fullname": user.full_name,
+                "email": user.email,
+                "user_id": user.id,
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class LoginView(APIView):
     permission_classes = [AllowAny] 
+    
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
         user = authenticate(request, email=email, password=password)
         if user:
             token, _ = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key, 'user': UserSerializer(user).data})
+            # Rückgabe wie in der Beispiel-API
+            return Response({
+                "token": token.key,
+                "fullname": user.full_name,
+                "email": user.email,
+                "user_id": user.id,
+            }, status=status.HTTP_200_OK)
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
