@@ -2,8 +2,9 @@ from django.urls import path
 from .views import (
     BoardListCreateView, BoardDetailView,
     TaskListCreateView, TaskDetailView,
-    CommentListCreateView, CommentDeleteView,    # <--- HINZUGEFÜGT!
-    AssignedToMeTaskListView, ReviewingTaskListView                     # <--- NEU importiert!
+    CommentListCreateView, CommentDeleteView,
+    AssignedToMeTaskListView, ReviewingTaskListView,
+    EmailCheckView  # <--- importiere deine EmailCheckView
 )
 
 urlpatterns = [
@@ -14,13 +15,13 @@ urlpatterns = [
     # Tasks
     path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
     path('tasks/<int:pk>/', TaskDetailView.as_view(), name='task-detail'),
-    path('tasks/assigned-to-me/', AssignedToMeTaskListView.as_view(), name='tasks-assigned-to-me'),  # <--- NEU
-
-    # Kommentare
-    # Alle Kommentare zu einem Task auflisten & neuen Kommentar anlegen
-    path('tasks/<int:task_id>/comments/', CommentListCreateView.as_view(), name='comment-list-create'),
-    # Einzelnen Kommentar löschen
-    path('comments/<int:pk>/', CommentDeleteView.as_view(), name='comment-delete'),
+    path('tasks/assigned-to-me/', AssignedToMeTaskListView.as_view(), name='tasks-assigned-to-me'),
     path('tasks/reviewing/', ReviewingTaskListView.as_view(), name='tasks-reviewing'),
 
+    # Kommentare
+    path('tasks/<int:task_id>/comments/', CommentListCreateView.as_view(), name='comment-list-create'),
+    path('comments/<int:pk>/', CommentDeleteView.as_view(), name='comment-delete'),
+
+    # Email check endpoint ergänzen
+    path('email-check/', EmailCheckView.as_view(), name='email-check'),
 ]

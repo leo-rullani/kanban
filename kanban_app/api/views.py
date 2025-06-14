@@ -8,6 +8,7 @@ from django.core.mail import send_mail  # <--- Neu
 from rest_framework import serializers
 from auth_app.models import User
 from django.db import models
+from django.contrib.auth import get_user_model
 
 # Whitelist für BBM interne E-Mail-Adressen (alle lower-case!)
 BBM_EMAILS = [
@@ -324,3 +325,23 @@ class ReviewingTaskListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         return Task.objects.filter(reviewer=user)
+    
+User = get_user_model()
+
+class EmailCheckView(generics.GenericAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        email = request.query_params.get('email')
+        if not email:
+            return Response({"detail": "Email query parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+            data = {
+                "id": user.id,
+                "email": user.email,
+                "fullname": getattr(user, "full_name", user.email),
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"detail": "Email not found."}, status=status.HTTP_404_NOT_FOUND)
