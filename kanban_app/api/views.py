@@ -7,6 +7,7 @@ from rest_framework import status
 from django.core.mail import send_mail  # <--- Neu
 from rest_framework import serializers
 from auth_app.models import User
+from django.db import models
 
 # Whitelist für BBM interne E-Mail-Adressen (alle lower-case!)
 BBM_EMAILS = [
@@ -305,3 +306,15 @@ class CommentDeleteView(generics.DestroyAPIView):
         ):
             return Response({'detail': 'Keine Berechtigung, diesen Kommentar zu löschen.'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
+
+class AssignedToMeTaskListView(generics.ListAPIView):
+    serializer_class = TaskSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        # Wenn du nur assignee willst:
+        # return Task.objects.filter(assignee=user)
+
+        # Wenn du assignee ODER reviewer willst (empfohlen nach API-Beschreibung!):
+        return Task.objects.filter(models.Q(assignee=user) | models.Q(reviewer=user)).distinct()

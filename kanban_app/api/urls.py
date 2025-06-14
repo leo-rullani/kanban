@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     BoardListCreateView, BoardDetailView,
     TaskListCreateView, TaskDetailView,
-    CommentListCreateView, CommentDeleteView   # <--- HINZUGEFÜGT!
+    CommentListCreateView, CommentDeleteView,    # <--- HINZUGEFÜGT!
+    AssignedToMeTaskListView                     # <--- NEU importiert!
 )
 
 urlpatterns = [
@@ -13,6 +14,7 @@ urlpatterns = [
     # Tasks
     path('tasks/', TaskListCreateView.as_view(), name='task-list-create'),
     path('tasks/<int:pk>/', TaskDetailView.as_view(), name='task-detail'),
+    path('tasks/assigned-to-me/', AssignedToMeTaskListView.as_view(), name='tasks-assigned-to-me'),  # <--- NEU
 
     # Kommentare
     # Alle Kommentare zu einem Task auflisten & neuen Kommentar anlegen
