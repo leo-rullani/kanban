@@ -1,11 +1,10 @@
 from rest_framework import generics
-from kanban_app.models import Board, Task
-from .serializers import BoardSerializer, TaskSerializer
+from kanban_app.models import Board, Task, Comment  # Comment ergänzt
+from .serializers import BoardSerializer, TaskSerializer, CommentSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from kanban_app.models import Board, Task, Comment  # Comment ergänzen!
-from .serializers import BoardSerializer, TaskSerializer, CommentSerializer  # CommentSerializer ergänzen!
+from django.core.mail import send_mail  # <--- Neu
 
 # Whitelist für BBM interne E-Mail-Adressen (alle lower-case!)
 BBM_EMAILS = [
@@ -172,11 +171,36 @@ class CommentListCreateView(generics.ListCreateAPIView):
             user.is_superuser or
             user.email.lower() in BBM_EMAILS
         ):
-            serializer.save(author=user, task=task)
+            # Kommentar speichern
+            comment = serializer.save(author=user, task=task)
+            
+            # --- MAIL-VERSAND AN ALLE RELEVANTEN ROLLEN ---
+            recipients = set()
+            if task.assignee and task.assignee.email:
+                recipients.add(task.assignee.email)
+            if task.reviewer and task.reviewer.email:
+                recipients.add(task.reviewer.email)
+            if task.board.owner and task.board.owner.email:
+                recipients.add(task.board.owner.email)
+
+            if recipients:
+                send_mail(
+                    subject=f"[KanMind] Neuer Kommentar zu Task: {task.title}",
+                    message=(
+                        f"Hi,\n\n"
+                        f"Es wurde ein neuer Kommentar zu deinem Task '{task.title}' hinterlegt.\n\n"
+                        f"Kommentar:\n{comment.text}\n\n"
+                        f"Von: {user.email}\n"
+                        f"Board: {task.board.title}\n\n"
+                        f"Viele Grüße\nDein KanMind-System"
+                    ),
+                    from_email="leugzim.rullani@bbmproductions.ch",  # oder None für DEFAULT_FROM_EMAIL
+                    recipient_list=list(recipients),
+                    fail_silently=True,
+                )
         else:
             raise serializers.ValidationError("Keine Berechtigung, diesen Task zu kommentieren.")
 
-# Kommentar löschen
 class CommentDeleteView(generics.DestroyAPIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer

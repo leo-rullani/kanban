@@ -142,3 +142,10 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "mail.bbmproductions.ch"
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "leugzim.rullani@bbmproductions.ch"
+EMAIL_HOST_PASSWORD = "<dein Passwort>"
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
