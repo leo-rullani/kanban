@@ -1,6 +1,6 @@
 from rest_framework import generics
 from kanban_app.models import Board, Task, Comment  # Comment ergänzt
-from .serializers import BoardSerializer, TaskSerializer, CommentSerializer
+from .serializers import BoardSerializer, TaskSerializer, CommentSerializer, TaskListSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
@@ -308,13 +308,19 @@ class CommentDeleteView(generics.DestroyAPIView):
         return super().destroy(request, *args, **kwargs)
 
 class AssignedToMeTaskListView(generics.ListAPIView):
-    serializer_class = TaskSerializer
+    serializer_class = TaskListSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-        # Wenn du nur assignee willst:
-        # return Task.objects.filter(assignee=user)
+        return Task.objects.filter(
+            models.Q(assignee=user) | models.Q(reviewer=user)
+        ).distinct()
 
-        # Wenn du assignee ODER reviewer willst (empfohlen nach API-Beschreibung!):
-        return Task.objects.filter(models.Q(assignee=user) | models.Q(reviewer=user)).distinct()
+class ReviewingTaskListView(generics.ListAPIView):
+    serializer_class = TaskListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Task.objects.filter(reviewer=user)

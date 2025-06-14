@@ -17,7 +17,7 @@ class Board(models.Model):
 class Task(models.Model):
     """
     Modell für eine Kanban-Task.
-    Enthält Titel, Beschreibung, Status, Verantwortliche, Deadlines und Ersteller.
+    Enthält Titel, Beschreibung, Status, Priorität, Verantwortliche, Deadlines und Ersteller.
     """
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='tasks')
     title = models.CharField(max_length=255)
@@ -28,6 +28,15 @@ class Task(models.Model):
         ('review', 'Review'),
         ('done', 'Done'),
     ], default='todo')
+    priority = models.CharField(
+        max_length=10,
+        choices=[
+            ('low', 'Low'),
+            ('medium', 'Medium'),
+            ('high', 'High')
+        ],
+        default='medium'
+    )
     assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks_assigned')
     reviewer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks_reviewing')
     due_date = models.DateField(null=True, blank=True)
