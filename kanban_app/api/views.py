@@ -333,22 +333,41 @@ class CommentListCreateView(generics.ListCreateAPIView):
         else:
             raise serializers.ValidationError("Keine Berechtigung, diesen Task zu kommentieren.")
 
+import logging
+from django.http import Http404
+
+logger = logging.getLogger(__name__)
+
 class CommentDeleteView(generics.DestroyAPIView):
     queryset = Comment.objects.all()
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
+    def get_object(self):
+        task_id = self.kwargs.get('task_id')
+        comment_id = self.kwargs.get('pk')
+        logger.debug(f"Delete comment request: task_id={task_id}, comment_id={comment_id}")
+        try:
+            comment = Comment.objects.get(id=comment_id, task__id=task_id)
+        except Comment.DoesNotExist:
+            logger.debug(f"Comment with id={comment_id} and task_id={task_id} not found")
+            raise Http404("Comment or Task not found.")
+        return comment
+
     def destroy(self, request, *args, **kwargs):
         comment = self.get_object()
         user = request.user
-        # Nur Author, Superuser, BBM dürfen Kommentar löschen
         if not (
             user == comment.author or
             user.is_superuser or
             user.email.lower() in BBM_EMAILS
         ):
-            return Response({'detail': 'Keine Berechtigung, diesen Kommentar zu löschen.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'detail': 'Keine Berechtigung, diesen Kommentar zu löschen.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         return super().destroy(request, *args, **kwargs)
+
 
 class AssignedToMeTaskListView(generics.ListAPIView):
     serializer_class = TaskListSerializer

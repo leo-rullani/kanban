@@ -4,7 +4,7 @@ from .views import (
     TaskListCreateView, TaskDetailView,
     CommentListCreateView, CommentDeleteView,
     AssignedToMeTaskListView, ReviewingTaskListView,
-    EmailCheckView  # <--- importiere deine EmailCheckView
+    EmailCheckView
 )
 
 urlpatterns = [
@@ -20,8 +20,8 @@ urlpatterns = [
 
     # Kommentare
     path('tasks/<int:task_id>/comments/', CommentListCreateView.as_view(), name='comment-list-create'),
-    path('comments/<int:pk>/', CommentDeleteView.as_view(), name='comment-delete'),
+    path('tasks/<int:task_id>/comments/<int:pk>/', CommentDeleteView.as_view(), name='comment-delete'),
 
-    # Email check endpoint ergänzen
+    # Email check endpoint
     path('email-check/', EmailCheckView.as_view(), name='email-check'),
 ]
