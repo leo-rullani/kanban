@@ -35,9 +35,9 @@ class BoardListCreateView(generics.ListCreateAPIView):
         return Board.objects.filter(members=user) | Board.objects.filter(owner=user)
 
     def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
+        queryset = self.get_queryset().distinct()
         result = []
-        for board in queryset.distinct():
+        for board in queryset:
             tasks = board.tasks.all()
             result.append({
                 "id": board.id,
@@ -45,23 +45,36 @@ class BoardListCreateView(generics.ListCreateAPIView):
                 "member_count": board.members.count(),
                 "ticket_count": tasks.count(),
                 "tasks_to_do_count": tasks.filter(status='todo').count(),
-                "tasks_high_prio_count": tasks.filter(status='todo', description__icontains='prio:high').count(),  # <== Passe an, falls du ein echtes Prio-Feld willst!
+                "tasks_high_prio_count": tasks.filter(status='todo', description__icontains='prio:high').count(),
                 "owner_id": board.owner.id if board.owner else None,
             })
         return Response(result)
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        if user.is_superuser or user.email.lower() in BBM_EMAILS:
-            serializer.save(owner=user)
-        else:
-            raise PermissionError("Nur BBM/Superuser dürfen Boards erstellen.")
-
     def create(self, request, *args, **kwargs):
-        try:
-            return super().create(request, *args, **kwargs)
-        except PermissionError as e:
-            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+        user = request.user
+        data = request.data.copy()
+        members = data.get('members', [])
+        if user.id not in members:
+            members.append(user.id)  # Füge den Owner immer als Member hinzu
+
+        serializer = self.get_serializer(data={**data, "members": members})
+        serializer.is_valid(raise_exception=True)
+        board = serializer.save(owner=user)
+        board.members.add(*members)  # Nochmals für Sicherheit (idempotent)
+        board.save()
+
+        # Für Response wie spezifiziert:
+        tasks = board.tasks.all()
+        resp = {
+            "id": board.id,
+            "title": board.title,
+            "member_count": board.members.count(),
+            "ticket_count": tasks.count(),
+            "tasks_to_do_count": tasks.filter(status='todo').count(),
+            "tasks_high_prio_count": tasks.filter(status='todo', description__icontains='prio:high').count(),
+            "owner_id": board.owner.id if board.owner else None,
+        }
+        return Response(resp, status=status.HTTP_201_CREATED)
 
 
 # Board-Detail/Update/Delete (einzelnes Board)
