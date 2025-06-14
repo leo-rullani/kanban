@@ -28,12 +28,19 @@ class TaskSerializer(serializers.ModelSerializer):
     comments = CommentSerializer(many=True, read_only=True)
     assignee = UserSerializer(read_only=True)
     reviewer = UserSerializer(read_only=True)
+    assignee_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='assignee', write_only=True, required=False, allow_null=True
+    )
+    reviewer_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(), source='reviewer', write_only=True, required=False, allow_null=True
+    )
 
     class Meta:
         model = Task
         fields = [
             'id', 'board', 'title', 'description', 'status', 'status_display',
-            'priority', 'assignee', 'reviewer', 'due_date', 'created_by', 'created_at', 'comments'
+            'priority', 'assignee', 'assignee_id', 'reviewer', 'reviewer_id',
+            'due_date', 'created_by', 'created_at', 'comments'
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'comments']
 
@@ -55,7 +62,7 @@ class TaskListSerializer(serializers.ModelSerializer):
 
 class BoardSerializer(serializers.ModelSerializer):
     members = UserSerializer(many=True, read_only=True)
-    # WICHTIG: Für Board-Detail (tasks-Array) verwende TaskListSerializer!
+    # Für Board-Detail (tasks-Array) verwende TaskListSerializer!
     tasks = TaskListSerializer(many=True, read_only=True)
     owner_id = serializers.IntegerField(source='owner.id', read_only=True)
 

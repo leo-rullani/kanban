@@ -163,13 +163,9 @@ class TaskListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         queryset = Task.objects.all()
 
-        # Rechte-Logik: Nur zugelassene Tasks sehen!
         if not (user.is_superuser or user.email.lower() in BBM_EMAILS):
-            queryset = queryset.filter(
-                board__members=user
-            )
+            queryset = queryset.filter(board__members=user)
 
-        # Filter nach Query-Parametern (optional und kombinierbar)
         status_param = self.request.query_params.get('status')
         board_param = self.request.query_params.get('board')
         assignee_param = self.request.query_params.get('assignee')
@@ -200,10 +196,56 @@ class TaskListCreateView(generics.ListCreateAPIView):
             raise PermissionError("Keine Berechtigung, Task auf diesem Board zu erstellen.")
 
     def create(self, request, *args, **kwargs):
+        # Manuelles Handling der "assignee_id" und "reviewer_id"
+        data = request.data.copy()
+        assignee_id = data.pop('assignee_id', None)
+        reviewer_id = data.pop('reviewer_id', None)
+
+        # Hole User-Instanzen falls angegeben
+        assignee = None
+        reviewer = None
         try:
-            return super().create(request, *args, **kwargs)
-        except PermissionError as e:
-            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+            if assignee_id:
+                assignee = User.objects.get(id=assignee_id)
+            if reviewer_id:
+                reviewer = User.objects.get(id=reviewer_id)
+        except User.DoesNotExist:
+            return Response({"detail": "Assignee or Reviewer not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        # Speichere mit den User-Objekten
+        serializer.save(
+            created_by=request.user,
+            assignee=assignee,
+            reviewer=reviewer
+        )
+
+        # Für die Response: comments_count statt comments-Array
+        task = serializer.instance
+        response_data = {
+            "id": task.id,
+            "board": task.board.id,
+            "title": task.title,
+            "description": task.description,
+            "status": task.status,
+            "priority": task.priority,
+            "assignee": {
+                "id": task.assignee.id,
+                "email": task.assignee.email,
+                "fullname": getattr(task.assignee, "full_name", task.assignee.email)
+            } if task.assignee else None,
+            "reviewer": {
+                "id": task.reviewer.id,
+                "email": task.reviewer.email,
+                "fullname": getattr(task.reviewer, "full_name", task.reviewer.email)
+            } if task.reviewer else None,
+            "due_date": task.due_date,
+            "comments_count": task.comments.count()
+        }
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
 
 # Task-Detail/Update/Delete (einzelne Task)
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
