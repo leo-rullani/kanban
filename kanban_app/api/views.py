@@ -32,7 +32,23 @@ class BoardListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         if user.is_superuser or user.email.lower() in BBM_EMAILS:
             return Board.objects.all()
-        return Board.objects.filter(members=user)
+        return Board.objects.filter(members=user) | Board.objects.filter(owner=user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        result = []
+        for board in queryset.distinct():
+            tasks = board.tasks.all()
+            result.append({
+                "id": board.id,
+                "title": board.title,
+                "member_count": board.members.count(),
+                "ticket_count": tasks.count(),
+                "tasks_to_do_count": tasks.filter(status='todo').count(),
+                "tasks_high_prio_count": tasks.filter(status='todo', description__icontains='prio:high').count(),  # <== Passe an, falls du ein echtes Prio-Feld willst!
+                "owner_id": board.owner.id if board.owner else None,
+            })
+        return Response(result)
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -46,6 +62,7 @@ class BoardListCreateView(generics.ListCreateAPIView):
             return super().create(request, *args, **kwargs)
         except PermissionError as e:
             return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+
 
 # Board-Detail/Update/Delete (einzelnes Board)
 class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
