@@ -1,12 +1,16 @@
 from rest_framework import generics
 from kanban_app.models import Board, Task, Comment  # Comment ergänzt
-from .serializers import BoardSerializer, TaskSerializer, CommentSerializer, TaskListSerializer
+from .serializers import (
+    BoardSerializer,
+    TaskSerializer,
+    CommentSerializer,
+    TaskListSerializer,
+)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.core.mail import send_mail  # <--- Neu
 from rest_framework import serializers
-from auth_app.models import User
 from django.db import models
 from django.contrib.auth import get_user_model
 
@@ -27,6 +31,7 @@ BBM_EMAILS = [
     "juergen.beckmann@bbmproductions.ch",
 ]
 
+
 # Board-List/Create (alle Boards, neues Board)
 class BoardListCreateView(generics.ListCreateAPIView):
     serializer_class = BoardSerializer
@@ -36,28 +41,34 @@ class BoardListCreateView(generics.ListCreateAPIView):
         user = self.request.user
         if user.is_superuser or user.email.lower() in BBM_EMAILS:
             return Board.objects.all()
-        return Board.objects.filter(members=user) | Board.objects.filter(owner=user)
+        return Board.objects.filter(members=user) | Board.objects.filter(
+            owner=user
+        )
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset().distinct()
         result = []
         for board in queryset:
             tasks = board.tasks.all()
-            result.append({
-                "id": board.id,
-                "title": board.title,
-                "member_count": board.members.count(),
-                "ticket_count": tasks.count(),
-                "tasks_to_do_count": tasks.filter(status='todo').count(),
-                "tasks_high_prio_count": tasks.filter(status='todo', description__icontains='prio:high').count(),
-                "owner_id": board.owner.id if board.owner else None,
-            })
+            result.append(
+                {
+                    "id": board.id,
+                    "title": board.title,
+                    "member_count": board.members.count(),
+                    "ticket_count": tasks.count(),
+                    "tasks_to_do_count": tasks.filter(status="todo").count(),
+                    "tasks_high_prio_count": tasks.filter(
+                        status="todo", description__icontains="prio:high"
+                    ).count(),
+                    "owner_id": board.owner.id if board.owner else None,
+                }
+            )
         return Response(result)
 
     def create(self, request, *args, **kwargs):
         user = request.user
         data = request.data.copy()
-        members = data.get('members', [])
+        members = data.get("members", [])
         if user.id not in members:
             members.append(user.id)  # Füge den Owner immer als Member hinzu
 
@@ -74,8 +85,10 @@ class BoardListCreateView(generics.ListCreateAPIView):
             "title": board.title,
             "member_count": board.members.count(),
             "ticket_count": tasks.count(),
-            "tasks_to_do_count": tasks.filter(status='todo').count(),
-            "tasks_high_prio_count": tasks.filter(status='todo', description__icontains='prio:high').count(),
+            "tasks_to_do_count": tasks.filter(status="todo").count(),
+            "tasks_high_prio_count": tasks.filter(
+                status="todo", description__icontains="prio:high"
+            ).count(),
             "owner_id": board.owner.id if board.owner else None,
         }
         return Response(resp, status=status.HTTP_201_CREATED)
@@ -93,26 +106,32 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         # Berechtigung prüfen
         if not (
-            user == board.owner or
-            user in board.members.all() or
-            user.is_superuser or
-            user.email.lower() in BBM_EMAILS
+            user == board.owner
+            or user in board.members.all()
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
         ):
-            return Response({'detail': 'Keine Berechtigung, dieses Board zu ändern.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Keine Berechtigung, dieses Board zu ändern."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         data = request.data
 
         # Titel aktualisieren, falls vorhanden
-        if 'title' in data:
-            board.title = data['title']
+        if "title" in data:
+            board.title = data["title"]
 
         # Mitglieder aktualisieren, falls vorhanden
-        if 'members' in data:
-            member_ids = data['members']
+        if "members" in data:
+            member_ids = data["members"]
             # Prüfe, ob alle IDs existieren
             valid_members = User.objects.filter(id__in=member_ids)
             if valid_members.count() != len(member_ids):
-                return Response({'detail': 'Ungültige Mitglieder-IDs.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Ungültige Mitglieder-IDs."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             # Mitglieder setzen (ersetzen alle bisherigen Mitglieder)
             board.members.set(valid_members)
 
@@ -123,22 +142,28 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
         owner_data = {
             "id": owner.id,
             "email": owner.email,
-            "fullname": owner.full_name if hasattr(owner, 'full_name') else str(owner)
+            "fullname": (
+                owner.full_name if hasattr(owner, "full_name") else str(owner)
+            ),
         }
 
         members_data = []
         for m in board.members.all():
-            members_data.append({
-                "id": m.id,
-                "email": m.email,
-                "fullname": m.full_name if hasattr(m, 'full_name') else str(m)
-            })
+            members_data.append(
+                {
+                    "id": m.id,
+                    "email": m.email,
+                    "fullname": (
+                        m.full_name if hasattr(m, "full_name") else str(m)
+                    ),
+                }
+            )
 
         response_data = {
             "id": board.id,
             "title": board.title,
             "owner_data": owner_data,
-            "members_data": members_data
+            "members_data": members_data,
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
@@ -147,12 +172,16 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
         board = self.get_object()
         user = request.user
         if not (
-            user == board.owner or
-            user.is_superuser or
-            user.email.lower() in BBM_EMAILS
+            user == board.owner
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
         ):
-            return Response({'detail': 'Keine Berechtigung, dieses Board zu löschen.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Keine Berechtigung, dieses Board zu löschen."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         return super().destroy(request, *args, **kwargs)
+
 
 # Task-List/Create (alle Tasks, neue Task) MIT FILTER!
 class TaskListCreateView(generics.ListCreateAPIView):
@@ -166,10 +195,10 @@ class TaskListCreateView(generics.ListCreateAPIView):
         if not (user.is_superuser or user.email.lower() in BBM_EMAILS):
             queryset = queryset.filter(board__members=user)
 
-        status_param = self.request.query_params.get('status')
-        board_param = self.request.query_params.get('board')
-        assignee_param = self.request.query_params.get('assignee')
-        due_date_param = self.request.query_params.get('due_date')
+        status_param = self.request.query_params.get("status")
+        board_param = self.request.query_params.get("board")
+        assignee_param = self.request.query_params.get("assignee")
+        due_date_param = self.request.query_params.get("due_date")
 
         if status_param:
             queryset = queryset.filter(status=status_param)
@@ -184,22 +213,24 @@ class TaskListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         user = self.request.user
-        board = serializer.validated_data['board']
+        board = serializer.validated_data["board"]
         if (
-            user == board.owner or
-            user in board.members.all() or
-            user.is_superuser or
-            user.email.lower() in BBM_EMAILS
+            user == board.owner
+            or user in board.members.all()
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
         ):
             serializer.save(created_by=user)
         else:
-            raise PermissionError("Keine Berechtigung, Task auf diesem Board zu erstellen.")
+            raise PermissionError(
+                "Keine Berechtigung, Task auf diesem Board zu erstellen."
+            )
 
     def create(self, request, *args, **kwargs):
         # Manuelles Handling der "assignee_id" und "reviewer_id"
         data = request.data.copy()
-        assignee_id = data.pop('assignee_id', None)
-        reviewer_id = data.pop('reviewer_id', None)
+        assignee_id = data.pop("assignee_id", None)
+        reviewer_id = data.pop("reviewer_id", None)
 
         # Hole User-Instanzen falls angegeben
         assignee = None
@@ -210,16 +241,17 @@ class TaskListCreateView(generics.ListCreateAPIView):
             if reviewer_id:
                 reviewer = User.objects.get(id=reviewer_id)
         except User.DoesNotExist:
-            return Response({"detail": "Assignee or Reviewer not found."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Assignee or Reviewer not found."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
         # Speichere mit den User-Objekten
         serializer.save(
-            created_by=request.user,
-            assignee=assignee,
-            reviewer=reviewer
+            created_by=request.user, assignee=assignee, reviewer=reviewer
         )
 
         # Für die Response: comments_count statt comments-Array
@@ -231,18 +263,30 @@ class TaskListCreateView(generics.ListCreateAPIView):
             "description": task.description,
             "status": task.status,
             "priority": task.priority,
-            "assignee": {
-                "id": task.assignee.id,
-                "email": task.assignee.email,
-                "fullname": getattr(task.assignee, "full_name", task.assignee.email)
-            } if task.assignee else None,
-            "reviewer": {
-                "id": task.reviewer.id,
-                "email": task.reviewer.email,
-                "fullname": getattr(task.reviewer, "full_name", task.reviewer.email)
-            } if task.reviewer else None,
+            "assignee": (
+                {
+                    "id": task.assignee.id,
+                    "email": task.assignee.email,
+                    "fullname": getattr(
+                        task.assignee, "full_name", task.assignee.email
+                    ),
+                }
+                if task.assignee
+                else None
+            ),
+            "reviewer": (
+                {
+                    "id": task.reviewer.id,
+                    "email": task.reviewer.email,
+                    "fullname": getattr(
+                        task.reviewer, "full_name", task.reviewer.email
+                    ),
+                }
+                if task.reviewer
+                else None
+            ),
             "due_date": task.due_date,
-            "comments_count": task.comments.count()
+            "comments_count": task.comments.count(),
         }
         return Response(response_data, status=status.HTTP_201_CREATED)
 
@@ -257,25 +301,32 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
         task = self.get_object()
         user = request.user
         if not (
-            user == task.board.owner or
-            user in task.board.members.all() or
-            user.is_superuser or
-            user.email.lower() in BBM_EMAILS
+            user == task.board.owner
+            or user in task.board.members.all()
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
         ):
-            return Response({'detail': 'Keine Berechtigung, diesen Task zu ändern.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Keine Berechtigung, diesen Task zu ändern."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         return super().update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         task = self.get_object()
         user = request.user
         if not (
-            user == task.board.owner or
-            user in task.board.members.all() or
-            user.is_superuser or
-            user.email.lower() in BBM_EMAILS
+            user == task.board.owner
+            or user in task.board.members.all()
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
         ):
-            return Response({'detail': 'Keine Berechtigung, diesen Task zu löschen.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Keine Berechtigung, diesen Task zu löschen."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         return super().destroy(request, *args, **kwargs)
+
 
 class CommentListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
@@ -285,12 +336,12 @@ class CommentListCreateView(generics.ListCreateAPIView):
         """
         Gibt alle Kommentare zu einem bestimmten Task (über die URL) zurück.
         """
-        task_id = self.kwargs.get('task_id')
+        task_id = self.kwargs.get("task_id")
         return Comment.objects.filter(task__id=task_id)
 
     def perform_create(self, serializer):
         user = self.request.user
-        task_id = self.kwargs.get('task_id')
+        task_id = self.kwargs.get("task_id")
         try:
             task = Task.objects.get(id=task_id)
         except Task.DoesNotExist:
@@ -298,14 +349,14 @@ class CommentListCreateView(generics.ListCreateAPIView):
 
         # Nur Owner, Member, BBM, Superuser dürfen kommentieren
         if (
-            user == task.board.owner or
-            user in task.board.members.all() or
-            user.is_superuser or
-            user.email.lower() in BBM_EMAILS
+            user == task.board.owner
+            or user in task.board.members.all()
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
         ):
             # Kommentar speichern
             comment = serializer.save(author=user, task=task)
-            
+
             # --- MAIL-VERSAND AN ALLE RELEVANTEN ROLLEN ---
             recipients = set()
             if task.assignee and task.assignee.email:
@@ -325,18 +376,21 @@ class CommentListCreateView(generics.ListCreateAPIView):
                         f"Von: {user.email}\n"
                         f"Board: {task.board.title}\n\n"
                         f"Viele Grüße\nDein KanMind-System"
-                    ),
+                        ),
                     from_email="leugzim.rullani@bbmproductions.ch",  # oder None für DEFAULT_FROM_EMAIL
                     recipient_list=list(recipients),
                     fail_silently=True,
-                )
-        else:
-            raise serializers.ValidationError("Keine Berechtigung, diesen Task zu kommentieren.")
+                    )
+            else:
+                raise serializers.ValidationError(
+        "Keine Berechtigung, diesen Task zu kommentieren."
+    )
 
 import logging
 from django.http import Http404
 
 logger = logging.getLogger(__name__)
+
 
 class CommentDeleteView(generics.DestroyAPIView):
     queryset = Comment.objects.all()
@@ -344,13 +398,17 @@ class CommentDeleteView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        task_id = self.kwargs.get('task_id')
-        comment_id = self.kwargs.get('pk')
-        logger.debug(f"Delete comment request: task_id={task_id}, comment_id={comment_id}")
+        task_id = self.kwargs.get("task_id")
+        comment_id = self.kwargs.get("pk")
+        logger.debug(
+            f"Delete comment request: task_id={task_id}, comment_id={comment_id}"
+        )
         try:
             comment = Comment.objects.get(id=comment_id, task__id=task_id)
         except Comment.DoesNotExist:
-            logger.debug(f"Comment with id={comment_id} and task_id={task_id} not found")
+            logger.debug(
+                f"Comment with id={comment_id} and task_id={task_id} not found"
+            )
             raise Http404("Comment or Task not found.")
         return comment
 
@@ -358,13 +416,13 @@ class CommentDeleteView(generics.DestroyAPIView):
         comment = self.get_object()
         user = request.user
         if not (
-            user == comment.author or
-            user.is_superuser or
-            user.email.lower() in BBM_EMAILS
+            user == comment.author
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
         ):
             return Response(
-                {'detail': 'Keine Berechtigung, diesen Kommentar zu löschen.'},
-                status=status.HTTP_403_FORBIDDEN
+                {"detail": "Keine Berechtigung, diesen Kommentar zu löschen."},
+                status=status.HTTP_403_FORBIDDEN,
             )
         return super().destroy(request, *args, **kwargs)
 
@@ -379,6 +437,7 @@ class AssignedToMeTaskListView(generics.ListAPIView):
             models.Q(assignee=user) | models.Q(reviewer=user)
         ).distinct()
 
+
 class ReviewingTaskListView(generics.ListAPIView):
     serializer_class = TaskListSerializer
     permission_classes = [IsAuthenticated]
@@ -386,16 +445,21 @@ class ReviewingTaskListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
         return Task.objects.filter(reviewer=user)
-    
+
+
 User = get_user_model()
+
 
 class EmailCheckView(generics.GenericAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        email = request.query_params.get('email')
+        email = request.query_params.get("email")
         if not email:
-            return Response({"detail": "Email query parameter is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"detail": "Email query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         try:
             user = User.objects.get(email=email)
             data = {
@@ -405,4 +469,7 @@ class EmailCheckView(generics.GenericAPIView):
             }
             return Response(data, status=status.HTTP_200_OK)
         except User.DoesNotExist:
-            return Response({"detail": "Email not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"detail": "Email not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
