@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Kanmind API – Testübersicht & Endpunkt-Dokumentation</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; color: #222; }
+    h1, h2, h3 { color: #195c8b; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 30px; }
+    th, td { border: 1px solid #bbb; padding: 7px 13px; }
+    th { background: #f7f7f7; }
+    tr:nth-child(even) { background: #f2f2f2; }
+    .ok { color: #228b22; font-weight: bold; }
+    .notest { color: #c9302c; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Kanmind API Endpoint Dokumentation & Testübersicht</h1>
+
+  <h2>Authentication – Login und Registrierung</h2>
+  <ul>
+    <li><b>POST</b> <code>/api/registration/</code></li>
+    <li><b>POST</b> <code>/api/login/</code></li>
+  </ul>
+
+  <h2>Boards – Bearbeitung, Erstellung und Abruf</h2>
+  <ul>
+    <li><b>GET</b> <code>/api/boards/</code></li>
+    <li><b>POST</b> <code>/api/boards/</code></li>
+    <li><b>GET</b> <code>/api/boards/{board_id}/</code></li>
+    <li><b>PATCH</b> <code>/api/boards/{board_id}/</code></li>
+    <li><b>DELETE</b> <code>/api/boards/{board_id}/</code></li>
+    <li><b>GET</b> <code>/api/email-check/</code></li>
+  </ul>
+
+  <h2>Tasks – Bearbeitung, Erstellung und Abruf</h2>
+  <ul>
+    <li><b>GET</b> <code>/api/tasks/assigned-to-me/</code></li>
+    <li><b>GET</b> <code>/api/tasks/reviewing/</code></li>
+    <li><b>POST</b> <code>/api/tasks/</code></li>
+    <li><b>PATCH</b> <code>/api/tasks/{task_id}/</code></li>
+    <li><b>DELETE</b> <code>/api/tasks/{task_id}/</code></li>
+    <li><b>GET</b> <code>/api/tasks/{task_id}/comments/</code></li>
+    <li><b>POST</b> <code>/api/tasks/{task_id}/comments/</code></li>
+    <li><b>DELETE</b> <code>/api/tasks/{task_id}/comments/{comment_id}/</code></li>
+  </ul>
+
+  <h2>Test-Übersicht (Postman / Manuelle Tests)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Endpunkt</th>
+        <th>Methode</th>
+        <th>Teststatus</th>
+        <th>Kommentar</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>/api/registration/</td><td>POST</td><td class="ok">✅</td><td>Registrierung funktioniert</td></tr>
+      <tr><td>/api/login/</td><td>POST</td><td class="ok">✅</td><td>Login funktioniert</td></tr>
+      <tr><td>/api/boards/</td><td>GET</td><td class="ok">✅</td><td>Boards abrufbar</td></tr>
+      <tr><td>/api/boards/</td><td>POST</td><td class="ok">✅</td><td>Board anlegen klappt</td></tr>
+      <tr><td>/api/boards/{board_id}/</td><td>GET</td><td class="ok">✅</td><td>Einzelnes Board abrufbar</td></tr>
+      <tr><td>/api/boards/{board_id}/</td><td>PATCH</td><td class="ok">✅</td><td>Bearbeiten getestet</td></tr>
+      <tr><td>/api/boards/{board_id}/</td><td>DELETE</td><td class="ok">✅</td><td>Löschen getestet</td></tr>
+      <tr><td>/api/email-check/</td><td>GET</td><td class="ok">✅</td><td>Email-Check ok</td></tr>
+      <tr><td>/api/tasks/assigned-to-me/</td><td>GET</td><td class="ok">✅</td><td>Assigned Tasks abrufbar</td></tr>
+      <tr><td>/api/tasks/reviewing/</td><td>GET</td><td class="ok">✅</td><td>Reviewing Tasks abrufbar</td></tr>
+      <tr><td>/api/tasks/</td><td>POST</td><td class="ok">✅</td><td>Task anlegen ok</td></tr>
+      <tr><td>/api/tasks/{task_id}/</td><td>PATCH</td><td class="ok">✅</td><td>Task bearbeiten ok</td></tr>
+      <tr><td>/api/tasks/{task_id}/</td><td>DELETE</td><td class="ok">✅</td><td>Task löschen ok</td></tr>
+      <tr><td>/api/tasks/{task_id}/comments/</td><td>GET</td><td class="ok">✅</td><td>Kommentare abrufbar</td></tr>
+      <tr><td>/api/tasks/{task_id}/comments/</td><td>POST</td><td class="ok">✅</td><td>Kommentar hinzufügen</td></tr>
+      <tr><td>/api/tasks/{task_id}/comments/{comment_id}/</td><td>DELETE</td><td class="ok">✅</td><td>Kommentar löschen</td></tr>
+    </tbody>
+  </table>
+
+  <p><b>Abdeckung: Über 95% – Alle kritischen Endpunkte getestet.</b><br>
+  Für Details siehe <i>Postman-Screenshot</i> im <code>/tests</code>-Ordner.</p>
+
+  <img src="postman-screenshot.png" alt="Postman Testlauf" style="max-width:100%;margin-top:24px;box-shadow:0 2px 12px #aaa;border-radius:6px;">
+</body>
+</html>
