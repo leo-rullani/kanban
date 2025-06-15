@@ -19,7 +19,12 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
+    # Admin interface
     path("admin/", admin.site.urls),
+
+    # Auth endpoints (user management, login, registration, etc.)
     path("api/auth/", include("auth_app.api.urls")),
+
+    # Kanban endpoints (boards, tasks, comments)
     path("api/kanban/", include("kanban_app.api.urls")),
 ]
