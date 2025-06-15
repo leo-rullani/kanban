@@ -33,8 +33,8 @@ class Task(models.Model):
     status = models.CharField(
         max_length=30,
         choices=[
-            ("todo", "To Do"),
-            ("inprogress", "In Progress"),
+            ("to-do", "To Do"),
+            ("in-progress", "In Progress"),
             ("review", "Review"),
             ("done", "Done"),
         ],
