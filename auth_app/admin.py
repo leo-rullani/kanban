@@ -2,9 +2,13 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User
 
-
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
+    """
+    Admin configuration for the custom User model.
+    Shows email, full name, and staff status in the admin list.
+    Allows searching and ordering by email and full name.
+    """
     fieldsets = (
         (None, {"fields": ("email", "password", "full_name")}),
         (
@@ -22,7 +26,7 @@ class UserAdmin(BaseUserAdmin):
         (
             "Dates",
             {"fields": ("last_login",)},
-        ),  # ACHTUNG: Das Komma macht daraus ein Tuple!
+        ),
     )
     add_fieldsets = (
         (
