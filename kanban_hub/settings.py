@@ -27,7 +27,7 @@ SECRET_KEY = (
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['leorullani.com', 'www.leorullani.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'leorullani.com',  'kanban.leorullani.com.w020313e.kasserver.com', 'www.leorullani.com']
 
 # Application definition
 

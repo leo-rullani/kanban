@@ -17,14 +17,18 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from django.shortcuts import redirect
+
+def redirect_to_api(request):
+    return redirect('/api/kanban/boards/')
 
 urlpatterns = [
-    # Admin interface
+    path('', redirect_to_api),  # Redirect root URL to API boards endpoint
     path("admin/", admin.site.urls),
-
-    # Auth endpoints (user management, login, registration, etc.)
     path("api/auth/", include("auth_app.api.urls")),
-
-    # Kanban endpoints (boards, tasks, comments)
     path("api/kanban/", include("kanban_app.api.urls")),
 ]
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
