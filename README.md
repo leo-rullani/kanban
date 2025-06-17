@@ -13,64 +13,91 @@ A Django REST Framework backend for a modern Kanban board application.
 - Admin interface for all core objects
 - Modern Python code style (PEP8, ≤14 lines/method, all code documented)
 
-## Quickstart
+---
 
+## Quickstart (Local Setup)
+
+### 1. **Clone the Repository**
+Open your terminal (PowerShell for Windows, Terminal for Mac/Linux) and run:
 ```bash
 git clone https://github.com/leo-rullani/kanban.git
-cd project.KanMind-backend
-python3 -m venv venv
-source venv/bin/activate
+cd kanban
+````
+
+
+### 2. **Create & Activate Virtual Environment**
+
+#### **Windows (CMD or PowerShell):**
+
+```bat
+python -m venv env
+env\Scripts\activate
+```
+
+#### **Mac/Linux:**
+
+```bash
+python3 -m venv env
+source env/bin/activate
+```
+
+### 3. **Install Dependencies**
+
+```bash
 pip install -r requirements.txt
 ```
 
-## Database setup (SQLite)
+### 4. **Database Setup (SQLite)**
 
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-## Create a superuser for the admin interface
+### 5. **Create Superuser (for admin interface)**
 
 ```bash
 python manage.py createsuperuser
 ```
 
-## Running the development server
+### 6. **Run Development Server**
 
 ```bash
 python manage.py runserver
 ```
+
+Visit [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/) to access the Django admin interface.
+
+---
 
 ## API Endpoints
 
 * `/api/kanban/` (boards, tasks, comments)
 * `/api/auth/` (registration, login, email check)
 
+---
+
 ## Project Structure
 
 ```
-project.KanMind-backend/      # Project root, settings, urls, wsgi, asgi, etc.
-kanban_app/                   # Kanban app (models, views, api/, admin, tests)
-auth_app/                     # Custom user model, registration, login, api/
-requirements.txt              # All dependencies (see pip freeze)
-README.md                     # This file
+kanban/                 # Project root (manage.py, requirements.txt, README.md, etc.)
+core/                   # Main project settings, urls, wsgi, asgi, etc.
+kanban_app/             # Kanban logic (models, views, api/, admin, tests)
+auth_app/               # Custom user model, registration, login, api/
 ```
 
-## Note
+---
 
-* No database files are included.
+## Notes
+
+* No database files are included in the repository.
 * After cloning, always run migrations!
 * The backend is decoupled: frontend is NOT part of this repo.
-* All environment variables, secrets, and .env files should be handled securely.
+* All environment variables, secrets, and `.env` files should be handled securely and are not included.
+* All code is PEP8-compliant and documented.
+* See [Django Deployment Checklist](https://docs.djangoproject.com/en/stable/howto/deployment/checklist/) for secure production setup.
 
-## Coding & Deployment
-
-* All code is PEP8-compliant (max. 79 chars/line, ≤14 lines per method).
-* Models: no logic in models, only data structure.
-* Serializers: explicit fields, no `__all__`.
-* Views: clear permissions, no open endpoints, resource-oriented URLs.
-* See Django deployment guide for production tips.
+---
 
 ## License
 
