@@ -515,22 +515,20 @@ class CommentDeleteView(generics.DestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        """
-        Returns the comment object for the given task and comment ID.
-        Raises 404 if not found.
-        """
         task_id = self.kwargs.get("task_id")
         comment_id = self.kwargs.get("pk")
         logger.debug(
             f"Delete comment request: task_id={task_id}, comment_id={comment_id}"
-        )
+            )
+        if not Task.objects.filter(id=task_id).exists():
+            raise NotFound("Task not found.")
         try:
             return Comment.objects.get(id=comment_id, task__id=task_id)
         except Comment.DoesNotExist:
             logger.debug(
-                f"Comment with id={comment_id} and task_id={task_id} not found"
-            )
-            raise Http404("Comment or Task not found.")
+            f"Comment with id={comment_id} and task_id={task_id} not found"
+        )
+        raise NotFound("Comment or Task not found.")
 
     def destroy(self, request, *args, **kwargs):
         """
