@@ -31,7 +31,6 @@ BBM_EMAILS = [
     "juergen.beckmann@bbmproductions.ch",
 ]
 
-
 class BoardListCreateView(generics.ListCreateAPIView):
     """
     API view for listing and creating boards accessible to the user.
@@ -99,7 +98,6 @@ class BoardListCreateView(generics.ListCreateAPIView):
             ).count(),
             "owner_id": board.owner.id if board.owner else None,
         }
-
 
 class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
@@ -280,26 +278,34 @@ class TaskListCreateView(generics.ListCreateAPIView):
         assignee, reviewer, error = self._get_users_from_data(data)
         if error:
             return error
+        board_id = data.get("board")
+        try:
+            board = Board.objects.get(pk=board_id)
+        except Board.DoesNotExist:
+            return Response(
+                {"detail": "Board not found."},
+                status=status.HTTP_404_NOT_FOUND,
+                )
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = request.user
-        
-        # Board-Permission check!
-        board = serializer.validated_data["board"]
+
+# Board-Permission check!
         if not self._has_board_permission(user, board):
             return Response(
-            {"detail": "No permission to create task on this board."},
-            status=status.HTTP_403_FORBIDDEN,
-        )
+                {"detail": "No permission to create task on this board."},
+                status=status.HTTP_403_FORBIDDEN,
+                )
         serializer.save(
         created_by=user,
         assignee=assignee,
         reviewer=reviewer
         )
         return Response(
-        self._get_task_response(serializer.instance),
-        status=status.HTTP_201_CREATED
-    )
+            self._get_task_response(serializer.instance), 
+            status=status.HTTP_201_CREATED
+                )
+
     
     def _get_users_from_data(self, data):
         """
