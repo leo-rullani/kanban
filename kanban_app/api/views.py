@@ -262,19 +262,6 @@ class TaskListCreateView(generics.ListCreateAPIView):
             queryset = queryset.filter(due_date=params.get("due_date"))
         return queryset
 
-    def perform_create(self, serializer):
-        """
-        Saves the task if the user has permission on the board.
-        """
-        user = self.request.user
-        board = serializer.validated_data["board"]
-        if self._has_board_permission(user, board):
-            serializer.save(created_by=user)
-        else:
-            raise PermissionError(
-                "No permission to create task on this board."
-            )
-
     def _has_board_permission(self, user, board):
         """
         Checks if the user can create tasks on this board.
@@ -285,8 +272,7 @@ class TaskListCreateView(generics.ListCreateAPIView):
             user.is_superuser or
             user.email.lower() in BBM_EMAILS
         )
-
-    def create(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs): 
         """
         Handles custom assignee/reviewer assignment and returns stats.
         """
@@ -296,16 +282,25 @@ class TaskListCreateView(generics.ListCreateAPIView):
             return error
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
+        user = request.user
+        
+        # Board-Permission check!
+        board = serializer.validated_data["board"]
+        if not self._has_board_permission(user, board):
+            return Response(
+            {"detail": "No permission to create task on this board."},
+            status=status.HTTP_403_FORBIDDEN,
+        )
         serializer.save(
-            created_by=request.user,
-            assignee=assignee,
-            reviewer=reviewer
+        created_by=user,
+        assignee=assignee,
+        reviewer=reviewer
         )
         return Response(
-            self._get_task_response(serializer.instance),
-            status=status.HTTP_201_CREATED
-        )
-
+        self._get_task_response(serializer.instance),
+        status=status.HTTP_201_CREATED
+    )
+    
     def _get_users_from_data(self, data):
         """
         Returns assignee, reviewer objects, or error response if not found.
