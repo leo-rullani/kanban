@@ -22,13 +22,13 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 
 def redirect_to_api(request):
-    return redirect('/api/kanban/boards/')
+    return redirect('/api/boards/')  # Neu: passt zum neuen Standard-Endpunkt
 
 urlpatterns = [
-    path('', redirect_to_api),  # Redirect root URL to API boards endpoint
+    path('', redirect_to_api),  # Root-URL leitet jetzt zu /api/boards/
     path("admin/", admin.site.urls),
-    path("api/auth/", include("auth_app.api.urls")),
-    path("api/kanban/", include("kanban_app.api.urls")),
+    path("api/", include("auth_app.api.urls")),       # <--- jetzt: /api/registration/ usw.
+    path("api/", include("kanban_app.api.urls")),     # <--- jetzt: /api/boards/, /api/tasks/ usw.
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
