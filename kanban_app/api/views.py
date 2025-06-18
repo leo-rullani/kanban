@@ -108,6 +108,24 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Board.objects.all()
     serializer_class = BoardSerializer
     permission_classes = [IsAuthenticated]
+    
+    def get(self, request, *args, **kwargs):
+        """
+        Checks permission for retrieving board details.
+        """
+        board = self.get_object()
+        user = request.user
+        if not (
+            user == board.owner
+            or user in board.members.all()
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
+        ):
+            return Response(
+                {"detail": "No permission to view this board."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().get(request, *args, **kwargs)
 
     def update(self, request, *args, **kwargs):
         """
@@ -211,8 +229,6 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
                 status=status.HTTP_403_FORBIDDEN,
             )
         return super().destroy(request, *args, **kwargs)
-
-
 
 class TaskListCreateView(generics.ListCreateAPIView):
     """
