@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from rest_framework import serializers
 from django.db import models
 from django.contrib.auth import get_user_model
+from rest_framework.exceptions import NotFound, PermissionDenied
 
 # Whitelist for internal BBM email addresses (all lowercase).
 BBM_EMAILS = [
@@ -43,11 +44,16 @@ class BoardListCreateView(generics.ListCreateAPIView):
         """
         Returns boards for which the user is owner or member.
         """
-        user = self.request.user
-        if user.is_superuser or user.email.lower() in BBM_EMAILS:
-            return Board.objects.all()
-        return (Board.objects.filter(members=user) |
-                Board.objects.filter(owner=user))
+        task_id = self.kwargs.get("task_id")
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            raise NotFound("Task not found.")
+        
+        if not self._can_view_comments(self.request.user, task):
+            raise PermissionDenied("No permission to view comments for this task.")
+        
+        return Comment.objects.filter(task__id=task_id)
 
     def list(self, request, *args, **kwargs):
         """
@@ -409,10 +415,29 @@ class CommentListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """
-        Returns all comments for a specific task (by URL).
+        Returns all comments for a specific task (by URL), only if user has permission.
         """
         task_id = self.kwargs.get("task_id")
+        try:
+            task = Task.objects.get(id=task_id)
+        except Task.DoesNotExist:
+            return Comment.objects.none()  
+        
+        if not self._can_view_comments(self.request.user, task):
+            raise PermissionDenied("No permission to view comments for this task.")
+        
         return Comment.objects.filter(task__id=task_id)
+    
+    def _can_view_comments(self, user, task):
+        """
+        Checks if the user is allowed to view comments for the given task.
+        """
+        return (
+            user == task.board.owner
+            or user in task.board.members.all()
+            or user.is_superuser
+            or user.email.lower() in BBM_EMAILS
+            )
 
     def perform_create(self, serializer):
         """
@@ -430,14 +455,11 @@ class CommentListCreateView(generics.ListCreateAPIView):
             self._send_comment_mail(task, comment, user, recipients)
 
     def _get_task_or_raise(self):
-        """
-        Gets the Task by URL param or raises a ValidationError.
-        """
         task_id = self.kwargs.get("task_id")
         try:
             return Task.objects.get(id=task_id)
         except Task.DoesNotExist:
-            raise serializers.ValidationError("Task not found.")
+            raise NotFound("Task not found.")
 
     def _can_comment(self, user, task):
         """
