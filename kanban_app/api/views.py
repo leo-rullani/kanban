@@ -42,18 +42,14 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         """
-        Returns boards for which the user is owner or member.
+        Returns all boards for admins (superuser/BBM), oder nur die eigenen als User.
         """
-        task_id = self.kwargs.get("task_id")
-        try:
-            task = Task.objects.get(id=task_id)
-        except Task.DoesNotExist:
-            raise NotFound("Task not found.")
-        
-        if not self._can_view_comments(self.request.user, task):
-            raise PermissionDenied("No permission to view comments for this task.")
-        
-        return Comment.objects.filter(task__id=task_id)
+        user = self.request.user
+        if user.is_superuser or user.email.lower() in BBM_EMAILS:
+            return Board.objects.all()
+        return Board.objects.filter(
+            models.Q(owner=user) | models.Q(members=user)
+    ).distinct()
 
     def list(self, request, *args, **kwargs):
         """
