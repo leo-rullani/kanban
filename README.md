@@ -1,5 +1,5 @@
 ```markdown
-# KanMind – Kanban API Backend
+# BBM – Kanban API Backend
 
 A Django REST Framework backend for a modern Kanban board application.
 
