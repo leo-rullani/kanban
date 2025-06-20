@@ -417,7 +417,7 @@ class CommentListCreateView(generics.ListCreateAPIView):
         try:
             task = Task.objects.get(id=task_id)
         except Task.DoesNotExist:
-            return Comment.objects.none()  
+            raise NotFound("Task not found.")
         
         if not self._can_view_comments(self.request.user, task):
             raise PermissionDenied("No permission to view comments for this task.")
